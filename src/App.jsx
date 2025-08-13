@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import io from "socket.io-client";
 import RetroButton from "./components/RetroButton.jsx";
 import TileRow from "./components/TileRow.jsx";
@@ -39,6 +39,7 @@ export default function App() {
   const [secret, setSecret] = useState("");
   const [history, setHistory] = useState([]);
   const [copied, setCopied] = useState(false);
+  const tileRef = useRef(null);
 
   const myId = me.id;
 
@@ -183,6 +184,8 @@ export default function App() {
       return;
     }
     socket.emit("guess", { code: room.code, guess: g });
+
+    tileRef.current?.clear?.();
   };
 
   const leaveRoom = () => {
@@ -462,9 +465,27 @@ export default function App() {
             </div>
 
             <div className="grid" style={{ justifyItems: "center" }}>
-              <TileInput onSubmit={submitGuess} disabled={!iAmTurn} />
+              <TileInput
+                ref={tileRef}
+                onSubmit={submitGuess}
+                disabled={!iAmTurn}
+              />
+              {/* Mobile-friendly submit button (and desktop too, for clarity) */}
+              <div className="actions mobile-submit">
+                <RetroButton
+                  onClick={() => {
+                    const val = tileRef.current?.getValue?.() || "";
+                    if (val.length === 4) submitGuess(val);
+                  }}
+                  disabled={!iAmTurn}
+                >
+                  Submit Guess
+                </RetroButton>
+              </div>
               <div className="small">
-                {iAmTurn ? "Press Enter to submit." : "Waiting for opponent…"}
+                {iAmTurn
+                  ? "Press Enter or tap Submit."
+                  : "Waiting for opponent…"}
               </div>
             </div>
           </div>
@@ -477,7 +498,7 @@ export default function App() {
               className="banner"
               style={{ color: iWon ? "var(--lime)" : "#fb7185" }}
             >
-              {iWon ? "You win! 🎉" : "You lost! Next time 🤝"}
+              {iWon ? "You win!" : "You lost! Next time will be yours!"}
             </div>
             <div className="split">
               <div className="panel left">
